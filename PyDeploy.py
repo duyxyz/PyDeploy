@@ -4,10 +4,11 @@ import ast
 import subprocess
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QLineEdit, QTextEdit,
-    QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QMessageBox, QDialog,
-    QScrollArea, QGridLayout, QDialogButtonBox
+    QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QMessageBox,
+    QListWidget, QProgressBar, QDialog, QScrollArea, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtWidgets import QDialog
 
 def get_imported_modules(pyfile):
     modules = set()
@@ -36,11 +37,11 @@ class BuildThread(QThread):
 
     def run(self):
         try:
-            process = subprocess.Popen(self.cmd, shell=True, cwd=self.cwd,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.STDOUT,
-                                       universal_newlines=True,
-                                       encoding='utf-8')
+            process = subprocess.Popen(
+                self.cmd, shell=True, cwd=self.cwd,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                universal_newlines=True, encoding='utf-8'
+            )
             for line in process.stdout:
                 self.log_signal.emit(line.rstrip())
             process.wait()
@@ -52,253 +53,261 @@ class BuildThread(QThread):
             self.finished_signal.emit(False, f"Lỗi: {e}")
 
 class CollectModulesDialog(QDialog):
-    def __init__(self, modules, selected):
+    def __init__(self, modules, selected_modules):
         super().__init__()
-        self.setWindowTitle("Chọn module để collect-all")
-        self.setMinimumSize(300, 400)
-        self.selected = selected.copy()
+        self.setWindowTitle("Chọn module để --collect-all")
+        self.resize(350, 400)
         self.modules = modules
+        self.selected_modules = set(selected_modules)
         self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout()
-        self.checkboxes = []
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         container = QWidget()
-        container_layout = QVBoxLayout()
+        vbox = QVBoxLayout()
 
+        self.checkboxes = []
         for mod in self.modules:
-            checkbox = QCheckBox(mod)
-            checkbox.setChecked(mod in self.selected)
-            container_layout.addWidget(checkbox)
-            self.checkboxes.append(checkbox)
+            cb = QCheckBox(mod)
+            if mod in self.selected_modules:
+                cb.setChecked(True)
+            vbox.addWidget(cb)
+            self.checkboxes.append(cb)
 
-        container.setLayout(container_layout)
+        container.setLayout(vbox)
         scroll.setWidget(container)
         layout.addWidget(scroll)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btn_box.accepted.connect(self.accept)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
         self.setLayout(layout)
 
     def get_selected_modules(self):
         return [cb.text() for cb in self.checkboxes if cb.isChecked()]
 
-class PyInstallerBuilder(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("PyInstaller Builder (PyQt6)")
-        self.setMinimumSize(720, 700)
-        self.extra_files = []
-        self.selected_modules = []
-        self.dist_folder = os.path.abspath("dist")
-        self.initUI()
-        self.setAcceptDrops(True)  # Enable drag and drop
-
-    def initUI(self):
-        layout = QGridLayout()
-        layout.setSpacing(8)
-
-        # File py
-        layout.addWidget(QLabel("Chọn file .py chính:"), 0, 0)
-        self.py_path = QLineEdit()
-        layout.addWidget(self.py_path, 0, 1)
-        btn_py = QPushButton("Chọn file .py")
-        btn_py.clicked.connect(self.select_py_file)
-        layout.addWidget(btn_py, 0, 2)
-
-        # Icon
-        layout.addWidget(QLabel("Chọn icon (.ico):"), 1, 0)
-        self.icon_path = QLineEdit()
-        layout.addWidget(self.icon_path, 1, 1)
-        btn_icon = QPushButton("Chọn icon")
-        btn_icon.clicked.connect(self.select_icon_file)
-        layout.addWidget(btn_icon, 1, 2)
-
-        # Extra files input
-        layout.addWidget(QLabel("Thêm file bổ sung:"), 2, 0)
-        self.extra_files_entry = QLineEdit()
-        self.extra_files_entry.setReadOnly(True)
-        layout.addWidget(self.extra_files_entry, 2, 1)
-
-        btn_add_files = QPushButton("Thêm file")
-        btn_add_files.clicked.connect(self.add_extra_files)
-        layout.addWidget(btn_add_files, 2, 2)
-
-        btn_view_extra = QPushButton("Xem các file đã thêm")
-        btn_view_extra.clicked.connect(self.show_extra_files_popup)
-        layout.addWidget(btn_view_extra, 3, 2)  # Nút nằm dưới nút thêm file
-
-        # Dist folder + nút chọn + nút mở
-        layout.addWidget(QLabel("Thư mục lưu EXE:"), 4, 0)
-        self.dist_path = QLineEdit(self.dist_folder)
-        layout.addWidget(self.dist_path, 4, 1)
-        btn_dist = QPushButton("Chọn thư mục lưu")
-        btn_dist.clicked.connect(self.select_dist_folder)
-        layout.addWidget(btn_dist, 4, 2)
-
-        btn_open_dist = QPushButton("Mở thư mục EXE")
-        btn_open_dist.clicked.connect(self.open_dist_folder)
-        layout.addWidget(btn_open_dist, 5, 2)
-
-        # Checkboxes
-        self.onefile_cb = QCheckBox("Đóng gói 1 file (--onefile)")
-        self.onefile_cb.stateChanged.connect(self.update_command)
-        layout.addWidget(self.onefile_cb, 5, 0)
-
-        self.noconsole_cb = QCheckBox("Ẩn console (--noconsole)")
-        self.noconsole_cb.stateChanged.connect(self.update_command)
-        layout.addWidget(self.noconsole_cb, 6, 0)
-
-        self.collectall_cb = QCheckBox("Thu thập module (--collect-all):")
-        self.collectall_cb.stateChanged.connect(self.on_collectall_toggled)
-        layout.addWidget(self.collectall_cb, 7, 0)
-
-        # Buttons row: Bỏ chọn module + Đóng gói
-        btn_frame = QHBoxLayout()
-        btn_clear_modules = QPushButton("Bỏ chọn tất cả module đã chọn")
-        btn_clear_modules.clicked.connect(self.clear_selected_modules)
-        btn_frame.addWidget(btn_clear_modules)
-        btn_frame.addStretch(1)
-        btn_build = QPushButton("Đóng gói")
-        btn_build.clicked.connect(self.build_exe)
-        self.btn_build = btn_build
-        btn_frame.addWidget(btn_build)
-        layout.addLayout(btn_frame, 8, 0, 1, 3)
-
-        # Command line input
-        layout.addWidget(QLabel("Lệnh sẽ chạy (có thể sửa):"), 9, 0)
-        self.cmd_line = QLineEdit()
-        layout.addWidget(self.cmd_line, 9, 1, 1, 2)
-
-        # Log output
-        layout.addWidget(QLabel("Log quá trình đóng gói:"), 10, 0)
-        self.log_text = QTextEdit()
-        self.log_text.setReadOnly(True)
-        layout.addWidget(self.log_text, 11, 0, 1, 3)
-
-        self.setLayout(layout)
-
-        # Kết nối update lệnh
-        self.py_path.textChanged.connect(self.update_command)
-        self.icon_path.textChanged.connect(self.update_command)
-        self.dist_path.textChanged.connect(self.update_command)
+class DropArea(QLabel):
+    def __init__(self, parent=None):
+        super().__init__("🗂️ Kéo thả file .py, .ico, các file bổ sung vào đây")
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #888;
+                border-radius: 14px;
+                min-height: 70px;
+                font-size: 18px;
+                background: #f9f9f9;
+                color: #666;
+            }
+            """)
+        self.setAcceptDrops(True)
+        self.parent = parent
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
+            event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            file_path = url.toLocalFile()
-            ext = os.path.splitext(file_path)[1].lower()
+        urls = event.mimeData().urls()
+        files = [url.toLocalFile() for url in urls if url.isLocalFile()]
+        for file in files:
+            ext = os.path.splitext(file)[1].lower()
             if ext == '.py':
-                self.py_path.setText(file_path)
+                self.parent.py_path_edit.setText(file)
             elif ext == '.ico':
-                self.icon_path.setText(file_path)
+                self.parent.icon_path_edit.setText(file)
             else:
-                if file_path not in self.extra_files:
-                    self.extra_files.append(file_path)
-                self.update_extra_files_entry()
-        self.update_command()
+                if file not in self.parent.extra_files:
+                    self.parent.extra_files.append(file)
+                    self.parent.extra_files_list.addItem(file)
+                    self.parent.update_extra_files_entry()
+        self.parent.update_command_preview()
+
+class PyInstallerBuilder(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("PyInstaller Builder (Popup chọn module khi tick checkbox chuẩn)")
+        self.resize(750, 730)
+        self.extra_files = []
+        self.dist_folder = os.path.abspath("dist")
+        self.selected_modules = []
+        self.available_modules = []
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QVBoxLayout()
+
+        self.drop_area = DropArea(self)
+        layout.addWidget(self.drop_area)
+
+        row_py = QHBoxLayout()
+        self.py_path_edit = QLineEdit()
+        self.py_path_edit.setPlaceholderText("Chọn file .py chính...")
+        btn_py = QPushButton("Chọn file .py")
+        btn_py.setMinimumWidth(140)
+        btn_py.setMaximumWidth(140)
+        row_py.addWidget(self.py_path_edit)
+        row_py.addWidget(btn_py)
+        layout.addLayout(row_py)
+
+        row_icon = QHBoxLayout()
+        self.icon_path_edit = QLineEdit()
+        self.icon_path_edit.setPlaceholderText("Chọn icon (.ico) (tùy chọn)...")
+        btn_icon = QPushButton("Chọn icon")
+        btn_icon.setMinimumWidth(140)
+        btn_icon.setMaximumWidth(140)
+        row_icon.addWidget(self.icon_path_edit)
+        row_icon.addWidget(btn_icon)
+        layout.addLayout(row_icon)
+
+        row_extra = QHBoxLayout()
+        self.extra_files_edit = QLineEdit()
+        self.extra_files_edit.setPlaceholderText("Các file bổ sung đã chọn")
+        self.extra_files_edit.setReadOnly(True)
+        btn_add_files = QPushButton("Thêm file bổ sung")
+        btn_add_files.setMinimumWidth(140)
+        btn_add_files.setMaximumWidth(140)
+        row_extra.addWidget(self.extra_files_edit)
+        row_extra.addWidget(btn_add_files)
+        layout.addLayout(row_extra)
+
+        self.extra_files_list = QListWidget()
+        self.extra_files_list.setMaximumHeight(80)
+        layout.addWidget(self.extra_files_list)
+
+        row_dist = QHBoxLayout()
+        self.dist_path_edit = QLineEdit(self.dist_folder)
+        self.dist_path_edit.setPlaceholderText("Thư mục lưu EXE (dist)...")
+        btn_dist = QPushButton("Chọn thư mục lưu")
+        btn_open_dist = QPushButton("Mở thư mục EXE")
+        btn_dist.setMinimumWidth(140)
+        btn_open_dist.setMinimumWidth(140)
+        row_dist.addWidget(self.dist_path_edit)
+        row_dist.addWidget(btn_dist)
+        row_dist.addWidget(btn_open_dist)
+        layout.addLayout(row_dist)
+
+        options_layout = QHBoxLayout()
+        self.chk_onefile = QCheckBox("Đóng gói 1 file (--onefile)")
+        self.chk_noconsole = QCheckBox("Ẩn console (--noconsole)")
+        self.chk_collectall = QCheckBox("Thu thập module (--collect-all)")
+        options_layout.addWidget(self.chk_onefile)
+        options_layout.addWidget(self.chk_noconsole)
+        options_layout.addWidget(self.chk_collectall)
+        layout.addLayout(options_layout)
+
+        layout.addWidget(QLabel("Lệnh sẽ chạy (có thể sửa):"))
+        self.command_preview = QLineEdit()
+        layout.addWidget(self.command_preview)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(0)
+        self.progress_bar.hide()
+        layout.addWidget(self.progress_bar)
+
+        layout.addWidget(QLabel("Log quá trình đóng gói:"))
+        self.log_text = QTextEdit()
+        self.log_text.setReadOnly(True)
+        self.log_text.setMinimumHeight(200)
+        layout.addWidget(self.log_text)
+
+        self.status_label = QLabel()
+        layout.addWidget(self.status_label)
+
+        self.btn_build = QPushButton("Đóng gói")
+        layout.addWidget(self.btn_build)
+
+        self.setLayout(layout)
+
+        # Kết nối sự kiện
+        btn_py.clicked.connect(self.select_py_file)
+        btn_icon.clicked.connect(self.select_icon_file)
+        btn_add_files.clicked.connect(self.add_extra_files)
+        btn_dist.clicked.connect(self.select_dist_folder)
+        btn_open_dist.clicked.connect(self.open_dist_folder)
+
+        self.chk_onefile.stateChanged.connect(self.update_command_preview)
+        self.chk_noconsole.stateChanged.connect(self.update_command_preview)
+        self.chk_collectall.stateChanged.connect(self.on_collectall_toggled)
+
+        self.py_path_edit.textChanged.connect(self.update_command_preview)
+        self.icon_path_edit.textChanged.connect(self.update_command_preview)
+        self.dist_path_edit.textChanged.connect(self.update_command_preview)
+        self.btn_build.clicked.connect(self.build_exe)
 
     def select_py_file(self):
         file, _ = QFileDialog.getOpenFileName(self, "Chọn file .py", "", "Python Files (*.py)")
         if file:
-            self.py_path.setText(file)
+            self.py_path_edit.setText(file)
 
     def select_icon_file(self):
         file, _ = QFileDialog.getOpenFileName(self, "Chọn icon (.ico)", "", "Icon Files (*.ico)")
         if file:
-            self.icon_path.setText(file)
+            self.icon_path_edit.setText(file)
 
     def add_extra_files(self):
-        files, _ = QFileDialog.getOpenFileNames(self, "Thêm file bổ sung")
+        files, _ = QFileDialog.getOpenFileNames(self, "Chọn file bổ sung")
         if files:
             for f in files:
                 if f not in self.extra_files:
                     self.extra_files.append(f)
+                    self.extra_files_list.addItem(f)
             self.update_extra_files_entry()
-            self.update_command()
 
     def update_extra_files_entry(self):
-        self.extra_files_entry.setText(", ".join(os.path.basename(f) for f in self.extra_files))
-
-    def show_extra_files_popup(self):
-        if not self.extra_files:
-            QMessageBox.information(self, "Thông báo", "Chưa có file bổ sung nào được thêm.")
-            return
-        dlg = QDialog(self)
-        dlg.setWindowTitle("Danh sách file bổ sung")
-        dlg.setMinimumSize(500, 400)
-        vbox = QVBoxLayout()
-        for f in self.extra_files:
-            label = QLabel(f)
-            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            vbox.addWidget(label)
-        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
-        btn_box.accepted.connect(dlg.accept)
-        vbox.addWidget(btn_box)
-        dlg.setLayout(vbox)
-        dlg.exec()
+        self.extra_files_edit.setText(", ".join(os.path.basename(f) for f in self.extra_files))
+        self.update_command_preview()
 
     def select_dist_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Chọn thư mục lưu")
+        folder = QFileDialog.getExistingDirectory(self, "Chọn thư mục lưu EXE")
         if folder:
-            self.dist_path.setText(folder)
+            self.dist_path_edit.setText(folder)
 
     def open_dist_folder(self):
-        folder = self.dist_path.text()
+        folder = self.dist_path_edit.text()
         if os.path.isdir(folder):
             os.startfile(folder)
         else:
             QMessageBox.warning(self, "Lỗi", "Thư mục không tồn tại.")
 
-    def clear_selected_modules(self):
-        self.selected_modules = []
-        self.collectall_cb.setChecked(False)
-        self.update_command()
-
-    def on_collectall_toggled(self):
-        if self.collectall_cb.isChecked():
-            pyfile = self.py_path.text()
+    def on_collectall_toggled(self, state):
+        if self.chk_collectall.isChecked():
+            pyfile = self.py_path_edit.text()
             if not os.path.isfile(pyfile):
                 QMessageBox.warning(self, "Lỗi", "Vui lòng chọn file .py hợp lệ trước khi chọn module!")
-                self.collectall_cb.setChecked(False)
+                self.chk_collectall.setChecked(False)
                 return
-            modules = get_imported_modules(pyfile)
-            if not modules:
-                QMessageBox.information(self, "Thông báo", "Không tìm thấy module nào trong file .py!")
-                self.collectall_cb.setChecked(False)
-                return
-            dlg = CollectModulesDialog(modules, self.selected_modules)
-            if dlg.exec():
+            self.available_modules = get_imported_modules(pyfile)
+            dlg = CollectModulesDialog(self.available_modules, self.selected_modules)
+            ret = dlg.exec()
+            if ret == QDialog.DialogCode.Accepted:
                 self.selected_modules = dlg.get_selected_modules()
             else:
-                self.collectall_cb.setChecked(False)
-            self.update_command()
+                self.chk_collectall.setChecked(False)
+                self.selected_modules = []
+            self.update_command_preview()
         else:
             self.selected_modules = []
-            self.update_command()
+            self.update_command_preview()
 
-    def update_command(self):
-        py = self.py_path.text()
-        ico = self.icon_path.text()
-        dist = self.dist_path.text()
+    def update_command_preview(self):
+        py = self.py_path_edit.text()
+        ico = self.icon_path_edit.text()
+        dist = self.dist_path_edit.text()
         options = []
-        if self.onefile_cb.isChecked():
+        if self.chk_onefile.isChecked():
             options.append("--onefile")
-        if self.noconsole_cb.isChecked():
+        if self.chk_noconsole.isChecked():
             options.append("--noconsole")
-        if self.collectall_cb.isChecked():
-            for m in self.selected_modules:
-                options.append(f"--collect-all {m}")
+        if self.chk_collectall.isChecked():
+            for mod in self.selected_modules:
+                options.append(f"--collect-all {mod}")
         if ico:
             options.append(f'--icon="{ico}"')
         if dist:
@@ -309,16 +318,21 @@ class PyInstallerBuilder(QWidget):
         cmd = ''
         if py:
             cmd = f'pyinstaller {" ".join(options)} {" ".join(add_data)} "{py}"'
-        self.cmd_line.setText(cmd)
+        self.command_preview.setText(cmd)
 
     def build_exe(self):
-        py_file = self.py_path.text()
+        py_file = self.py_path_edit.text()
         if not py_file or not os.path.isfile(py_file):
             QMessageBox.warning(self, "Lỗi", "Vui lòng chọn file .py hợp lệ.")
             return
-        cmd = self.cmd_line.text()
+        cmd = self.command_preview.text()
+
+        self.status_label.setText("Đang đóng gói...")
+        self.progress_bar.show()
+        self.progress_bar.setValue(0)
+        self.setEnabled(False)
         self.log_text.clear()
-        self.btn_build.setEnabled(False)
+
         self.thread = BuildThread(cmd, os.path.dirname(py_file))
         self.thread.log_signal.connect(self.append_log)
         self.thread.finished_signal.connect(self.on_build_finished)
@@ -326,10 +340,19 @@ class PyInstallerBuilder(QWidget):
 
     def append_log(self, text):
         self.log_text.append(text)
+        self.log_text.verticalScrollBar().setValue(self.log_text.verticalScrollBar().maximum())
 
     def on_build_finished(self, success, msg):
-        QMessageBox.information(self, "Thông báo", msg)
-        self.btn_build.setEnabled(True)
+        self.progress_bar.hide()
+        self.setEnabled(True)
+        if success:
+            self.status_label.setText("Đã đóng gói xong.")
+            self.log_text.append("\n=== Đã đóng gói xong ===")
+            QMessageBox.information(self, "Thông báo", msg)
+        else:
+            self.status_label.setText("Lỗi đóng gói!")
+            self.log_text.append("\n=== Lỗi đóng gói ===")
+            QMessageBox.warning(self, "Lỗi", msg)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
