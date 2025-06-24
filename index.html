@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PyDeploy - Animated & Responsive</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
+
+<style>
+  /* Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #1b2735, #182233);
+    color: #e0e6f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .logo {
+    width: 180px;
+    height: 180px;
+    border-radius: 24px;
+    margin-bottom: 30px;
+    opacity: 0;
+    animation: fadeInScale 0.6s forwards;
+    animation-delay: 1.6s;
+  }
+
+  .animated-title {
+    font-size: 4.5rem;
+    font-weight: 600;
+    color: #39a0f5;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 20px;
+  }
+
+  .animated-title span {
+    opacity: 0;
+    transform: translateY(20px);
+    animation-fill-mode: forwards;
+    animation-name: fadeSlideUp;
+    animation-duration: 0.5s;
+  }
+
+  .animated-title span:nth-child(1) { animation-delay: 0.1s; }
+  .animated-title span:nth-child(2) { animation-delay: 0.25s; }
+  .animated-title span:nth-child(3) { animation-delay: 0.4s; }
+  .animated-title span:nth-child(4) { animation-delay: 0.55s; }
+  .animated-title span:nth-child(5) { animation-delay: 0.7s; }
+  .animated-title span:nth-child(6) { animation-delay: 0.85s; }
+  .animated-title span:nth-child(7) { animation-delay: 1.0s; }
+  .animated-title span:nth-child(8) { animation-delay: 1.15s; }
+
+  .subtitle {
+    font-size: 1.8rem;
+    color: #c1c7d0;
+    max-width: 600px;
+    margin-bottom: 40px;
+    line-height: 1.5;
+    opacity: 0;
+    animation: fadeIn 0.8s forwards;
+    animation-delay: 1.3s;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    opacity: 0;
+    animation: fadeIn 0.8s forwards;
+    animation-delay: 1.8s;
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  /* Lùi 3 nút icon dưới xuống 20px */
+  .btn-row:last-child {
+    margin-top: 20px;
+  }
+
+  /* Nút download wrapper để chứa popup */
+  .btn-download-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .btn-download {
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border: 3px solid transparent;
+    background: #39a0f5;
+    color: #182233;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .btn-download:hover {
+    background: #62b6f7;
+  }
+
+  /* Popup menu */
+  .download-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #182233;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    margin-top: 8px;
+    min-width: 220px;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10;
+  }
+
+  .download-menu.show {
+    display: flex;
+  }
+
+  .download-menu a {
+    padding: 12px 20px;
+    color: #e0e6f0;
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid #2c3a56;
+    transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .download-menu a:last-child {
+    border-bottom: none;
+  }
+  .download-menu a:hover {
+    background: #254060;
+  }
+  .download-menu i {
+    font-size: 1.2rem;
+  }
+
+  /* Nút GitHub style */
+  .btn-secondary {
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding: 16px 32px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid #fff;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.3s ease, transform 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+    color: #fff;
+  }
+
+  /* Giữ nguyên 3 nút icon tròn y hệt cũ */
+  .btn-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    background: transparent;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .btn-circle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+  }
+
+  @keyframes fadeSlideUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .logo {
+      width: 140px;
+      height: 140px;
+      margin-bottom: 20px;
+    }
+
+    .animated-title {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      gap: 3px;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      max-width: 90vw;
+      margin-bottom: 30px;
+      line-height: 1.4;
+    }
+
+    .btn-download, .btn-secondary {
+      padding: 14px 24px;
+      font-size: 1.3rem;
+      width: auto;
+      min-width: 220px;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .btn-circle {
+      width: 44px;
+      height: 44px;
+      font-size: 1.1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<img src="https://raw.githubusercontent.com/1DiorLIV/PyDeploy/refs/heads/main/app_icon.ico" alt="PyDeploy Logo" class="logo" />
+
+<h1 class="animated-title">
+  <span>P</span><span>y</span><span>D</span><span>e</span><span>p</span><span>l</span><span>o</span><span>y</span>
+</h1>
+
+<p class="subtitle">Convert .py to .exe in one click</p>
+
+<div class="btn-group">
+  <div class="btn-row">
+    <div class="btn-download-wrapper">
+      <div class="btn-download" id="downloadBtn" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-brands fa-windows"></i> v1.0.0
+        <i class="fa-solid fa-caret-down" style="margin-left:6px;"></i>
+      </div>
+      <div class="download-menu" id="downloadMenu" role="menu" aria-label="Download options">
+        <a href="https://github.com/1DiorLIV/PyDeploy/releases/download/App/PyDeploy_Setup.exe" target="_blank" download role="menuitem">
+          <i class="fa-solid fa-file-invoice"></i> Setup Installer
+        </a>
+        <a href="portable.html" role="menuitem">
+          <i class="fa-solid fa-box-open"></i> Portable Versions
+        </a>
+      </div>
+    </div>
+    <a href="https://github.com/1DiorLIV/PyDeploy" class="btn-secondary" target="_blank" rel="noopener noreferrer">
+      <i class="fa-brands fa-github"></i> GitHub
+    </a>
+  </div>
+  <div class="btn-row">
+    <a href="https://github.com/1DiorLIV/PyDeploy/wiki" class="btn-circle" title="Docs">
+      <i class="fa-solid fa-book"></i>
+    </a>
+    <a href="mailto:ngduy10102006@gmail.com" class="btn-circle" title="Contact">
+      <i class="fa-solid fa-envelope"></i>
+    </a>
+    <a href="guide.html" class="btn-circle" title="How to Use">
+      <i class="fa-solid fa-circle-info"></i>
+    </a>
+  </div>
+</div>
+
+<script>
+  const downloadBtn = document.getElementById('downloadBtn');
+  const downloadMenu = document.getElementById('downloadMenu');
+
+  downloadBtn.addEventListener('click', () => {
+    const expanded = downloadBtn.getAttribute('aria-expanded') === 'true';
+    downloadBtn.setAttribute('aria-expanded', String(!expanded));
+    downloadMenu.classList.toggle('show');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!downloadBtn.contains(e.target) && !downloadMenu.contains(e.target)) {
+      downloadBtn.setAttribute('aria-expanded', 'false');
+      downloadMenu.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && downloadMenu.classList.contains('show')) {
+      downloadBtn.setAttribute('aria-expanded', 'false');
+      downloadMenu.classList.remove('show');
+      downloadBtn.focus();
+    }
+  });
+</script>
+
+</body>
+</html>
