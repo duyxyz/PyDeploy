@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QListWidget, QProgressBar, QDialog, QScrollArea, QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QIcon  # <--- import QIcon
 from PyQt6.QtWidgets import QDialog
 
 def get_imported_modules(pyfile):
@@ -121,6 +122,7 @@ class DropArea(QLabel):
                 self.parent.py_path_edit.setText(file)
             elif ext == '.ico':
                 self.parent.icon_path_edit.setText(file)
+                self.parent.setWindowIcon(QIcon(file))  # Cập nhật icon khi thả file .ico
             else:
                 if file not in self.parent.extra_files:
                     self.parent.extra_files.append(file)
@@ -137,6 +139,12 @@ class PyInstallerBuilder(QWidget):
         self.dist_folder = os.path.abspath("dist")
         self.selected_modules = []
         self.available_modules = []
+
+        # Đặt icon mặc định lúc khởi động (nếu có file này)
+        default_icon_path = "app_icon.ico"
+        if os.path.isfile(default_icon_path):
+            self.setWindowIcon(QIcon(default_icon_path))
+
         self._init_ui()
 
     def _init_ui(self):
@@ -237,7 +245,7 @@ class PyInstallerBuilder(QWidget):
         self.chk_collectall.stateChanged.connect(self.on_collectall_toggled)
 
         self.py_path_edit.textChanged.connect(self.update_command_preview)
-        self.icon_path_edit.textChanged.connect(self.update_command_preview)
+        self.icon_path_edit.textChanged.connect(self.on_icon_path_changed)
         self.dist_path_edit.textChanged.connect(self.update_command_preview)
         self.btn_build.clicked.connect(self.build_exe)
 
@@ -250,6 +258,12 @@ class PyInstallerBuilder(QWidget):
         file, _ = QFileDialog.getOpenFileName(self, "Select icon (.ico)", "", "Icon Files (*.ico)")
         if file:
             self.icon_path_edit.setText(file)
+            self.setWindowIcon(QIcon(file))  # Cập nhật icon cửa sổ ngay khi chọn file
+
+    def on_icon_path_changed(self):
+        icon_path = self.icon_path_edit.text()
+        if os.path.isfile(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
     def add_extra_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select extra files")
