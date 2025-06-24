@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PyDeploy User Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #0f1c2e;
+      color: #e0e6f0;
+      line-height: 1.6;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+    h1, h2 {
+      color: #39a0f5;
+      text-align: center;
+      margin-bottom: 24px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation-fill-mode: forwards;
+      animation-duration: 0.6s;
+      animation-timing-function: ease-out;
+    }
+    h1 {
+      font-size: 3rem;
+      animation-name: fadeSlideUp1;
+      animation-delay: 0.2s;
+    }
+    h2 {
+      font-size: 2rem;
+      margin-top: 40px;
+      animation-name: fadeSlideUp2;
+    }
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation-fill-mode: forwards;
+      animation-duration: 0.6s;
+      animation-timing-function: ease-out;
+      animation-name: fadeSlideUp3;
+    }
+    ul {
+      animation-delay: 0.8s;
+    }
+    ol {
+      animation-delay: 1.0s;
+    }
+    p {
+      margin-bottom: 15px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation-fill-mode: forwards;
+      animation-duration: 0.6s;
+      animation-timing-function: ease-out;
+      animation-name: fadeSlideUp4;
+      animation-delay: 1.2s;
+    }
+    a.back {
+      display: inline-block;
+      margin-top: 40px;
+      text-decoration: none;
+      padding: 10px 20px;
+      background: #39a0f5;
+      color: #182233;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: background 0.3s ease;
+      opacity: 0;
+      transform: translateY(20px);
+      animation-fill-mode: forwards;
+      animation-duration: 0.6s;
+      animation-timing-function: ease-out;
+      animation-name: fadeSlideUp5;
+      animation-delay: 1.5s;
+    }
+    a.back:hover {
+      background: #62b6f7;
+    }
+
+    @keyframes fadeSlideUp1 {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp2 {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp3 {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp4 {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp5 {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PyDeploy User Guide</h1>
+
+    <h2>Features</h2>
+    <ul>
+      <li>✅ One-click conversion from <code>.py</code> to <code>.exe</code></li>
+      <li>✅ No command line required</li>
+      <li>✅ Supports PyQt, Tkinter, console apps</li>
+      <li>✅ Auto-bundles dependencies</li>
+      <li>✅ Lightweight & Portable</li>
+    </ul>
+
+    <h2>How to Use</h2>
+    <ol>
+      <li>Download and install PyDeploy using the setup file.</li>
+      <li>Launch the application.</li>
+      <li>Click "Browse" to select your Python script (<code>.py</code> file).</li>
+      <li>Select additional options (e.g. collect-all, windowed).</li>
+      <li>Click the "Build EXE" button.</li>
+      <li>Wait for the process to finish and get your <code>.exe</code> output.</li>
+    </ol>
+
+    <h2>Troubleshooting</h2>
+    <p>If your EXE doesn't run correctly:</p>
+    <ul>
+      <li>Ensure your Python script runs correctly by itself first.</li>
+      <li>Check if additional files (like images or .ui) are included manually.</li>
+      <li>Use the "--collect-all" option if your script uses dynamic modules.</li>
+    </ul>
+
+    <a href="index.html" class="back">← Back to Home</a>
+  </div>
+</body>
+</html>
