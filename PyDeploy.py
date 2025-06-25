@@ -2,12 +2,16 @@ import sys
 import os
 import ast
 import subprocess
+import pathlib
+import webbrowser
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QLineEdit, QTextEdit,
     QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QMessageBox,
-    QListWidget, QProgressBar, QDialog, QScrollArea, QDialogButtonBox
+    QListWidget, QProgressBar, QDialog, QScrollArea, QDialogButtonBox,
+    QSizePolicy
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QDialog
 
 def get_imported_modules(pyfile):
@@ -95,12 +99,12 @@ class DropArea(QLabel):
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("""
             QLabel {
-                border: 2px dashed #888;
+                border: 2px dashed #999;
                 border-radius: 14px;
                 min-height: 70px;
                 font-size: 18px;
                 background: #f9f9f9;
-                color: #666;
+                color: #333;
             }
             """)
         self.setAcceptDrops(True)
@@ -121,6 +125,7 @@ class DropArea(QLabel):
                 self.parent.py_path_edit.setText(file)
             elif ext == '.ico':
                 self.parent.icon_path_edit.setText(file)
+                self.parent.setWindowIcon(QIcon(file))
             else:
                 if file not in self.parent.extra_files:
                     self.parent.extra_files.append(file)
@@ -132,11 +137,16 @@ class PyInstallerBuilder(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyInstaller Builder by Minh Duy")
-        self.resize(750, 730)
+        self.resize(750, 780)
         self.extra_files = []
         self.dist_folder = os.path.abspath("dist")
         self.selected_modules = []
         self.available_modules = []
+
+        default_icon_path = "app_icon.ico"
+        if os.path.isfile(default_icon_path):
+            self.setWindowIcon(QIcon(default_icon_path))
+
         self._init_ui()
 
     def _init_ui(self):
@@ -145,87 +155,105 @@ class PyInstallerBuilder(QWidget):
         self.drop_area = DropArea(self)
         layout.addWidget(self.drop_area)
 
+        btn_width = 140
+
+        # Row chọn file .py
         row_py = QHBoxLayout()
         self.py_path_edit = QLineEdit()
-        self.py_path_edit.setPlaceholderText("Select main .py file...")
+        row_py.addWidget(self.py_path_edit, stretch=3)
         btn_py = QPushButton("Select .py file")
-        btn_py.setMinimumWidth(140)
-        btn_py.setMaximumWidth(140)
-        row_py.addWidget(self.py_path_edit)
-        row_py.addWidget(btn_py)
+        btn_py.setFixedWidth(btn_width)
+        row_py.addWidget(btn_py, stretch=1)
         layout.addLayout(row_py)
 
+        # Row chọn icon
         row_icon = QHBoxLayout()
         self.icon_path_edit = QLineEdit()
-        self.icon_path_edit.setPlaceholderText("Select icon (.ico) (optional)...")
+        row_icon.addWidget(self.icon_path_edit, stretch=3)
         btn_icon = QPushButton("Select icon")
-        btn_icon.setMinimumWidth(140)
-        btn_icon.setMaximumWidth(140)
-        row_icon.addWidget(self.icon_path_edit)
-        row_icon.addWidget(btn_icon)
+        btn_icon.setFixedWidth(btn_width)
+        row_icon.addWidget(btn_icon, stretch=1)
         layout.addLayout(row_icon)
 
+        # Row extra files
         row_extra = QHBoxLayout()
         self.extra_files_edit = QLineEdit()
-        self.extra_files_edit.setPlaceholderText("Selected extra files")
         self.extra_files_edit.setReadOnly(True)
+        row_extra.addWidget(self.extra_files_edit, stretch=3)
         btn_add_files = QPushButton("Add extra files")
-        btn_add_files.setMinimumWidth(140)
-        btn_add_files.setMaximumWidth(140)
-        row_extra.addWidget(self.extra_files_edit)
-        row_extra.addWidget(btn_add_files)
+        btn_add_files.setFixedWidth(btn_width)
+        row_extra.addWidget(btn_add_files, stretch=1)
         layout.addLayout(row_extra)
 
+        # Danh sách extra files
         self.extra_files_list = QListWidget()
         self.extra_files_list.setMaximumHeight(80)
         layout.addWidget(self.extra_files_list)
 
+        # Row chọn thư mục dist
         row_dist = QHBoxLayout()
         self.dist_path_edit = QLineEdit(self.dist_folder)
-        self.dist_path_edit.setPlaceholderText("Folder to save EXE (dist)...")
+        row_dist.addWidget(self.dist_path_edit, stretch=3)
         btn_dist = QPushButton("Select output folder")
+        btn_dist.setFixedWidth(btn_width)
         btn_open_dist = QPushButton("Open EXE folder")
-        btn_dist.setMinimumWidth(140)
-        btn_open_dist.setMinimumWidth(140)
-        row_dist.addWidget(self.dist_path_edit)
-        row_dist.addWidget(btn_dist)
-        row_dist.addWidget(btn_open_dist)
+        btn_open_dist.setFixedWidth(btn_width)
+        row_dist.addWidget(btn_dist, stretch=1)
+        row_dist.addWidget(btn_open_dist, stretch=1)
         layout.addLayout(row_dist)
 
-        options_layout = QHBoxLayout()
+        # Row checkbox option + 2 nút download/install pyinstaller cùng hàng
+        row_options_buttons = QHBoxLayout()
+
         self.chk_onefile = QCheckBox("One file bundle (--onefile)")
         self.chk_noconsole = QCheckBox("Hide console (--noconsole)")
         self.chk_collectall = QCheckBox("Collect module (--collect-all)")
-        options_layout.addWidget(self.chk_onefile)
-        options_layout.addWidget(self.chk_noconsole)
-        options_layout.addWidget(self.chk_collectall)
-        layout.addLayout(options_layout)
 
+        row_options_buttons.addWidget(self.chk_onefile)
+        row_options_buttons.addWidget(self.chk_noconsole)
+        row_options_buttons.addWidget(self.chk_collectall)
+
+        self.btn_download_python = QPushButton("Download Python")
+        self.btn_install_pyinstaller = QPushButton("Install pyinstaller")
+        self.btn_download_python.setFixedWidth(btn_width)
+        self.btn_install_pyinstaller.setFixedWidth(btn_width)
+
+        row_options_buttons.addWidget(self.btn_download_python)
+        row_options_buttons.addWidget(self.btn_install_pyinstaller)
+
+        layout.addLayout(row_options_buttons)
+
+        # Command preview
         layout.addWidget(QLabel("Command to run (editable):"))
         self.command_preview = QLineEdit()
         layout.addWidget(self.command_preview)
 
+        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)
         self.progress_bar.hide()
+        self.progress_bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.progress_bar)
 
+        # Build log
         layout.addWidget(QLabel("Build log:"))
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMinimumHeight(200)
         layout.addWidget(self.log_text)
 
+        # Status label
         self.status_label = QLabel()
         layout.addWidget(self.status_label)
 
+        # Build button
         self.btn_build = QPushButton("Build")
         layout.addWidget(self.btn_build)
 
         self.setLayout(layout)
 
-        # Connect events
+        # Connect signals
         btn_py.clicked.connect(self.select_py_file)
         btn_icon.clicked.connect(self.select_icon_file)
         btn_add_files.clicked.connect(self.add_extra_files)
@@ -237,9 +265,12 @@ class PyInstallerBuilder(QWidget):
         self.chk_collectall.stateChanged.connect(self.on_collectall_toggled)
 
         self.py_path_edit.textChanged.connect(self.update_command_preview)
-        self.icon_path_edit.textChanged.connect(self.update_command_preview)
+        self.icon_path_edit.textChanged.connect(self.on_icon_path_changed)
         self.dist_path_edit.textChanged.connect(self.update_command_preview)
         self.btn_build.clicked.connect(self.build_exe)
+
+        self.btn_download_python.clicked.connect(self.download_python)
+        self.btn_install_pyinstaller.clicked.connect(self.install_pyinstaller_button)
 
     def select_py_file(self):
         file, _ = QFileDialog.getOpenFileName(self, "Select .py file", "", "Python Files (*.py)")
@@ -250,6 +281,12 @@ class PyInstallerBuilder(QWidget):
         file, _ = QFileDialog.getOpenFileName(self, "Select icon (.ico)", "", "Icon Files (*.ico)")
         if file:
             self.icon_path_edit.setText(file)
+            self.setWindowIcon(QIcon(file))
+
+    def on_icon_path_changed(self):
+        icon_path = self.icon_path_edit.text()
+        if os.path.isfile(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
     def add_extra_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select extra files")
@@ -354,8 +391,71 @@ class PyInstallerBuilder(QWidget):
             self.log_text.append("\n=== Build error ===")
             QMessageBox.warning(self, "Error", msg)
 
+    def download_python(self):
+        webbrowser.open("https://www.python.org/downloads/")
+
+    def install_pyinstaller_button(self):
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
+            QMessageBox.information(self, "Success", "pyinstaller installed successfully.")
+        except subprocess.CalledProcessError as e:
+            QMessageBox.warning(self, "Error", f"Failed to install pyinstaller:\n{e}")
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    app.setStyleSheet("""
+        QWidget {
+            background-color: #f9f9f9;
+            color: #333333;
+            font-family: Arial, sans-serif;
+        }
+        QPushButton {
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 4px;
+            color: #000000;
+        }
+        QPushButton:hover {
+            background-color: #d0d0d0;
+        }
+        QLineEdit, QTextEdit {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            color: #000000;
+        }
+        QCheckBox {
+            color: #000000;
+        }
+        QLabel {
+            color: #000000;
+        }
+        QListWidget {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ccc;
+        }
+        QProgressBar {
+            background-color: #e0e0e0;
+            color: #000000;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        QProgressBar::chunk {
+            background-color: #007acc;
+        }
+        QScrollArea {
+            background-color: #f9f9f9;
+            border: none;
+        }
+        QDialogButtonBox QPushButton {
+            background-color: #e0e0e0;
+            border: 1px solid #ccc;
+            color: #000000;
+        }
+    """)
+
     window = PyInstallerBuilder()
     window.show()
     sys.exit(app.exec())
