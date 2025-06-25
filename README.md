@@ -1,4 +1,6 @@
 [![Download PyDeploy](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)
+[![Download PyDeploy](https://img.shields.io/sourceforge/dt/pydeploy-app.svg)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)
+
 
 This `PyDeploy.py` script is a GUI application built with PyQt6 that serves as a PyInstaller builder. It simplifies the process of converting Python scripts into standalone executable files.
 
