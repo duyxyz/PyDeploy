@@ -143,7 +143,6 @@ class PyInstallerBuilder(QMainWindow):
         main_layout.setContentsMargins(8, 8, 8, 8)
         main_layout.setSpacing(8)
 
-        self._create_menu_bar()
 
         left_column_layout = QVBoxLayout()
         left_column_layout.setSpacing(8)
@@ -272,17 +271,6 @@ class PyInstallerBuilder(QMainWindow):
         btn_open_dist.clicked.connect(self.open_dist_folder) 
         self.btn_build.clicked.connect(self.build_exe)
 
-    def _create_menu_bar(self):
-        menu_bar = self.menuBar()
-        tools_menu = menu_bar.addMenu("Công cụ")
-
-        install_action = QAction("Cài đặt PyInstaller", self)
-        install_action.triggered.connect(self.install_pyinstaller_button)
-        tools_menu.addAction(install_action)
-
-        download_action = QAction("Tải Python...", self)
-        download_action.triggered.connect(self.download_python)
-        tools_menu.addAction(download_action)
         
     def _create_file_selection_row_grid(self, label_text, line_edit_name, on_click):
         layout = QHBoxLayout()
