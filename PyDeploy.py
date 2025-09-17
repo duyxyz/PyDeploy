@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QGroupBox, QMainWindow, QSpacerItem, QGridLayout # Import QGridLayout
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon, QAction, QColor, QPalette
+from PyQt6.QtGui import QIcon, QAction, QColor, QPalette,QFont
 
 # =============================================================================
 # CÁC HÀM VÀ LỚP LOGIC (Giữ nguyên)
@@ -153,7 +153,7 @@ class PyInstallerBuilder(QMainWindow):
         # group_input.setMinimumWidth(640) # Đã xóa dòng này
         
         layout_input = QGridLayout()
-        layout_input.setContentsMargins(8, 20, 8, 8)
+        layout_input.setContentsMargins(8, 8, 8, 8)
         layout_input.setSpacing(4)
 
         # Script (.py)
@@ -192,7 +192,7 @@ class PyInstallerBuilder(QMainWindow):
         # --- Dữ liệu bổ sung (Extra Files) ---
         group_extra_files = QGroupBox("Dữ liệu bổ sung")
         layout_extra_files = QVBoxLayout()
-        layout_extra_files.setContentsMargins(8, 20, 8, 8)
+        layout_extra_files.setContentsMargins(8, 8, 8, 8)
         layout_extra_files.setSpacing(4)
 
         self.extra_files_list = QListWidget()
@@ -230,7 +230,7 @@ class PyInstallerBuilder(QMainWindow):
 
         group_build = QGroupBox("Xây dựng & Nhật ký")
         layout_build = QVBoxLayout()
-        layout_build.setContentsMargins(8, 20, 8, 8)
+        layout_build.setContentsMargins(8, 8, 8, 8)
         layout_build.setSpacing(4)
 
         layout_build.addWidget(QLabel("Lệnh PyInstaller:"))
@@ -239,13 +239,18 @@ class PyInstallerBuilder(QMainWindow):
         layout_build.addWidget(self.command_preview)
 
         self.btn_build = QPushButton("BẮT ĐẦU XÂY DỰNG")
-        self.btn_build.setStyleSheet("font-size: 14px; padding: 7px; background-color: #0078D4; color: white; font-weight: bold; border-radius: 5px;")
+        self.btn_build.setMinimumHeight(40)      # cao ~40px
+        self.btn_build.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        
         layout_build.addWidget(self.btn_build)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setMaximum(0)
         self.progress_bar.hide()
+        self.progress_bar.setMinimumWidth(self.btn_build.minimumWidth())  
         layout_build.addWidget(self.progress_bar)
+
+
 
         layout_build.addWidget(QLabel("Nhật ký xây dựng:"))
         self.log_text = QTextEdit()
@@ -443,147 +448,43 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     app.setStyleSheet("""
-        QWidget {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            font-size: 13px;
-            color: #333333;
+        QMainWindow, QWidget {
+            background-color: rgba(20, 20, 20, 220);
+            color: white;
         }
-        QMainWindow, QDialog {
-            background-color: #F0F0F0;
-        }
-        QGroupBox {
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            padding: 1px 6px;
-            background-color: #E0E0E0;
-            border: 1px solid #BBBBBB;
-            border-radius: 4px;
-            color: #333333;
-            font-weight: bold;
-            font-size: 12px;
-            left: 7px;
+        QLineEdit, QTextEdit {
+            background-color: rgba(30, 30, 30, 200);
+            color: white;
         }
         QPushButton {
-            background-color: #0078D4;
+            background-color: rgba(45, 45, 45, 200);
             color: white;
-            border: 1px solid #005BB5;
-            padding: 6px 10px;
-            border-radius: 5px;
-            font-weight: 600;
-            outline: none;
         }
         QPushButton:hover {
-            background-color: #006BBF;
+            background-color: rgba(70, 70, 70, 220);
         }
-        QPushButton:pressed {
-            background-color: #004F9F;
-        }
-        QPushButton[text="..."], QPushButton[text="Thêm..."], 
-        QPushButton[text="Xóa chọn"], QPushButton[text="Xóa tất cả"],
-        QPushButton[text="Mở thư mục đầu ra"] { 
-            background-color: #E0E0E0;
-            color: #333333;
-            border: 1px solid #BBBBBB;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: normal;
-            font-size: 12px;
-        }
-        QPushButton[text="..."]:hover, QPushButton[text="Thêm..."]:hover, 
-        QPushButton[text="Xóa chọn"]:hover, QPushButton[text="Xóa tất cả"]:hover,
-        QPushButton[text="Mở thư mục đầu ra"]:hover {
-            background-color: #D0D0D0;
-        }
-        QLineEdit, QTextEdit, QListWidget {
-            background-color: #FFFFFF;
-            border: 1px solid #BBBBBB;
-            border-radius: 3px;
-            padding: 3px;
-            selection-background-color: #0078D4;
-            selection-color: white;
-        }
-        QLineEdit:focus, QTextEdit:focus, QListWidget:focus {
-            border: 1px solid #0078D4;
-            outline: none;
-        }
-        QMenuBar {
-            background-color: #E0E0E0;
-            border-bottom: 1px solid #BBBBBB;
-            padding: 2px;
-            font-size: 13px;
-        }
-        QMenuBar::item {
-            padding: 3px 8px;
-            border-radius: 3px;
-        }
-        QMenuBar::item:selected {
-            background-color: #D0D0D0;
-            color: #333333;
-        }
-        QMenu {
-             background-color: #FFFFFF;
-             border: 1px solid #BBBBBB;
-             border-radius: 5px;
-             padding: 3px;
-        }
-        QMenu::item {
-            padding: 5px 15px;
-            border-radius: 3px;
-        }
-        QMenu::item:selected {
-            background-color: #0078D4;
-            color: white;
-        }
-        QCheckBox {
-            spacing: 5px;
-            color: #333333;
-            font-size: 12px;
-        }
-        QCheckBox::indicator {
-            width: 16px; 
-            height: 16px; 
-            border-radius: 8px; /* Đảm bảo hình tròn */
-            border: 1px solid #888888;
-            background-color: #FFFFFF;
-        }
-        QCheckBox::indicator:hover { 
-            border: 1px solid #005BB5; 
-            background-color: #F0F0F0; 
-        }
-        QCheckBox::indicator:checked {
-            background-color: #0078D4; /* Tô màu xanh cho hình tròn khi được chọn */
-            border: 1px solid #0078D4; /* Viền cùng màu với nền */
-            image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAABH0lEQVR4nI2TMUrDQBSGv0r+K+79X27hQoPg4sQoHoNjoXgDjo0XIB7cK6kK3MQ5bXnJ4iBxcXgY0tJSzC2Tf+A7xMhOkhj2P4kQ981rNpvN2+t2u317JpOJXC6X7/M8D9vtdpfGYrG4QqvV+nFmS+C83W6/kMmk/1bXdQbBYDD5qNVqtVwuF8Pruq6Wlpb+yE6r1eonkUhkXlZW1lR2NptNJpPJXlVVVbslGo3GE2Sbpml2LBaLr6urq78c+f0WwOVy+R6LxWKXWCwWi1NTU/+Wz+e/EAS9Xn/Mjo6O03A4/B5lWU6SJJ2z2Wy7vV7vD6PRaBwOh0P4XyKR+CKRyPyQyGQ+JpNJfB+n+8wL8QcW3eQxQAAAAABJRU5ErkJggg==);
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-        QCheckBox::indicator:disabled {
-            background-color: #EEEEEE;
-            border: 1px solid #CCCCCC;
-        }
+
+        /* ==== QProgressBar ==== */
         QProgressBar {
-            border: 1px solid #BBBBBB;
-            border-radius: 4px;
+            border: 1px solid #444;
+            border-radius: 3px;
             text-align: center;
-            height: 16px;
-            background-color: #E0E0E0;
-            color: #333333;
+            background-color: rgba(35, 35, 35, 200);
+            color: white;
+            min-height: 10px;   /* thấp, mảnh */
+            max-height: 12px;   /* giữ cho nó không cao quá */
         }
         QProgressBar::chunk {
-            background-color: #0078D4;
+            background-color: qlineargradient(
+                x1:0, y1:0, x2:1, y2:0,
+                stop:0 #3daee9,
+                stop:1 #005f99
+            );
             border-radius: 3px;
-        }
-        QLabel {
-            font-size: 12px;
         }
     """)
 
     window = PyInstallerBuilder()
     window.show()
     sys.exit(app.exec())
+
