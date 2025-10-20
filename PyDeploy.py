@@ -332,7 +332,6 @@ class PyInstallerBuilder(QMainWindow):
             self.py_path_edit.setText(file_path)
         elif ext == '.ico':
             self.icon_path_edit.setText(file_path)
-            self.setWindowIcon(QIcon(file_path))
         else:
             if file_path not in self.extra_files:
                 self.extra_files.append(file_path)
@@ -348,7 +347,6 @@ class PyInstallerBuilder(QMainWindow):
         file, _ = QFileDialog.getOpenFileName(self, "Chọn biểu tượng (.ico)", "", "Icon Files (*.ico)")
         if file:
             self.icon_path_edit.setText(file)
-            self.setWindowIcon(QIcon(file))
 
     def add_extra_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Chọn các tệp bổ sung")
@@ -454,13 +452,20 @@ class PyInstallerBuilder(QMainWindow):
         if success:
             # Kiểm tra lại xem PyInstaller đã cài thành công chưa
             if check_pyinstaller_installed():
-                QMessageBox.information(self, "Thành công", 
+                reply = QMessageBox.question(
+                    self, 
+                    "Thành công", 
                     "PyInstaller đã được cài đặt thành công!\n\n"
-                    "Bạn có thể bắt đầu build ngay bây giờ.")
+                    "Bạn có muốn bắt đầu build ngay không?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes
+                )
+                if reply == QMessageBox.StandardButton.Yes:
+                    self.start_build()
             else:
                 QMessageBox.warning(self, "Cảnh báo", 
                     "PyInstaller đã được cài đặt nhưng chưa khả dụng.\n\n"
-                    "Vui lòng khởi động lại ứng dụng và thử lại.")
+                    "Vui lòng thử lại.")
         else:
             QMessageBox.critical(self, "Lỗi", msg)
 
