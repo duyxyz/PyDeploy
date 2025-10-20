@@ -8,14 +8,27 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QLineEdit, QTextEdit,
     QCheckBox, QFileDialog, QHBoxLayout, QVBoxLayout, QMessageBox,
     QListWidget, QProgressBar, QDialog, QScrollArea, QDialogButtonBox,
-    QSizePolicy, QGroupBox, QMainWindow, QSpacerItem, QGridLayout # Import QGridLayout
+    QSizePolicy, QGroupBox, QMainWindow, QSpacerItem, QGridLayout
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QIcon, QAction, QColor, QPalette,QFont
+from PyQt6.QtGui import QIcon, QAction, QColor, QPalette, QFont
 
 # =============================================================================
-# CÁC HÀM VÀ LỚP LOGIC (Giữ nguyên)
+# CÁC HÀM VÀ LỚP LOGIC
 # =============================================================================
+
+def check_pyinstaller_installed():
+    """Kiểm tra xem PyInstaller đã được cài đặt chưa"""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "show", "pyinstaller"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 def get_imported_modules_from_content(content):
     modules = set()
@@ -31,6 +44,34 @@ def get_imported_modules_from_content(content):
     except Exception:
         pass
     return sorted(modules)
+
+class InstallPyInstallerThread(QThread):
+    """Thread để cài đặt PyInstaller"""
+    log_signal = pyqtSignal(str)
+    finished_signal = pyqtSignal(bool, str)
+
+    def run(self):
+        try:
+            self.log_signal.emit("Đang cài đặt PyInstaller...")
+            process = subprocess.Popen(
+                [sys.executable, "-m", "pip", "install", "--upgrade", "pyinstaller"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                encoding='utf-8'
+            )
+            
+            for line in process.stdout:
+                self.log_signal.emit(line.rstrip())
+            
+            process.wait()
+            
+            if process.returncode == 0:
+                self.finished_signal.emit(True, "PyInstaller đã được cài đặt thành công!")
+            else:
+                self.finished_signal.emit(False, "Không thể cài đặt PyInstaller. Vui lòng kiểm tra kết nối mạng.")
+        except Exception as e:
+            self.finished_signal.emit(False, f"Lỗi khi cài đặt PyInstaller: {e}")
 
 class BuildThread(QThread):
     log_signal = pyqtSignal(str)
@@ -66,7 +107,6 @@ class CollectModulesDialog(QDialog):
         self.modules = modules
         self.selected_modules = set(selected_modules)
         
-        # THAY ĐỔI: Thêm biểu tượng cho cửa sổ popup
         default_icon_path = "app_icon.ico"
         if os.path.isfile(default_icon_path):
             self.setWindowIcon(QIcon(default_icon_path))
@@ -102,7 +142,7 @@ class CollectModulesDialog(QDialog):
         return [cb.text() for cb in self.checkboxes if cb.isChecked()]
 
 # =============================================================================
-# LỚP GIAO DIỆN CHÍNH (Đã điều chỉnh _init_ui)
+# LỚP GIAO DIỆN CHÍNH
 # =============================================================================
 
 class PyInstallerBuilder(QMainWindow):
@@ -143,14 +183,11 @@ class PyInstallerBuilder(QMainWindow):
         main_layout.setContentsMargins(8, 8, 8, 8)
         main_layout.setSpacing(8)
 
-
         left_column_layout = QVBoxLayout()
         left_column_layout.setSpacing(8)
 
         # --- Cài đặt chung (Input Options) ---
         group_input = QGroupBox("Cài đặt chung")
-        # THAY ĐỔI: Bỏ đặt chiều rộng tối thiểu cho group_input
-        # group_input.setMinimumWidth(640) # Đã xóa dòng này
         
         layout_input = QGridLayout()
         layout_input.setContentsMargins(8, 8, 8, 8)
@@ -177,12 +214,11 @@ class PyInstallerBuilder(QMainWindow):
         self.chk_collectall = QCheckBox("Thu thập modules")
         self.chk_clean = QCheckBox("Xóa build tạm")
         
-        # THAY ĐỔI: Bỏ stretch=1 và thêm addStretch()
         options_layout.addWidget(self.chk_onefile)
         options_layout.addWidget(self.chk_noconsole)
         options_layout.addWidget(self.chk_collectall)
         options_layout.addWidget(self.chk_clean)
-        options_layout.addStretch() # THAY ĐỔI: Thêm stretch để các ô tích không giãn
+        options_layout.addStretch()
 
         layout_input.addLayout(options_layout, 3, 0, 1, 3)
 
@@ -239,7 +275,7 @@ class PyInstallerBuilder(QMainWindow):
         layout_build.addWidget(self.command_preview)
 
         self.btn_build = QPushButton("BẮT ĐẦU XÂY DỰNG")
-        self.btn_build.setMinimumHeight(40)      # cao ~40px
+        self.btn_build.setMinimumHeight(40)
         self.btn_build.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         
         layout_build.addWidget(self.btn_build)
@@ -249,8 +285,6 @@ class PyInstallerBuilder(QMainWindow):
         self.progress_bar.hide()
         self.progress_bar.setMinimumWidth(self.btn_build.minimumWidth())  
         layout_build.addWidget(self.progress_bar)
-
-
 
         layout_build.addWidget(QLabel("Nhật ký xây dựng:"))
         self.log_text = QTextEdit()
@@ -262,7 +296,7 @@ class PyInstallerBuilder(QMainWindow):
         
         main_layout.addLayout(right_column_layout, 1)
 
-        # Connections (Thêm kết nối cho ô tích mới)
+        # Connections
         self.chk_onefile.stateChanged.connect(self.update_command_preview)
         self.chk_noconsole.stateChanged.connect(self.update_command_preview)
         self.chk_collectall.stateChanged.connect(self.on_collectall_toggled)
@@ -276,7 +310,6 @@ class PyInstallerBuilder(QMainWindow):
         btn_open_dist.clicked.connect(self.open_dist_folder) 
         self.btn_build.clicked.connect(self.build_exe)
 
-        
     def _create_file_selection_row_grid(self, label_text, line_edit_name, on_click):
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -302,8 +335,8 @@ class PyInstallerBuilder(QMainWindow):
             self.setWindowIcon(QIcon(file_path))
         else:
             if file_path not in self.extra_files:
-                self.extra_files.append(f)
-                self.extra_files_list.addItem(f)
+                self.extra_files.append(file_path)
+                self.extra_files_list.addItem(file_path)
         self.update_command_preview()
 
     def select_py_file(self):
@@ -378,7 +411,8 @@ class PyInstallerBuilder(QMainWindow):
             self.command_preview.setText("Vui lòng chọn một tập lệnh Python để xây dựng.")
             return
 
-        parts = ["pyinstaller"]
+        # Sử dụng python -m PyInstaller thay vì pyinstaller trực tiếp
+        parts = [f'"{sys.executable}" -m PyInstaller']
         if self.chk_onefile.isChecked(): parts.append("--onefile")
         if self.chk_noconsole.isChecked(): parts.append("--noconsole")
         if self.chk_clean.isChecked(): parts.append("--clean")
@@ -399,18 +433,72 @@ class PyInstallerBuilder(QMainWindow):
         parts.append(f'"{py}"')
         self.command_preview.setText(" ".join(parts))
 
+    def install_pyinstaller(self):
+        """Cài đặt PyInstaller tự động"""
+        self.log_text.clear()
+        self.log_text.append("=== BẮT ĐẦU CÀI ĐẶT PYINSTALLER ===\n")
+        
+        self.progress_bar.show()
+        self.centralWidget().setEnabled(False)
+        
+        self.install_thread = InstallPyInstallerThread()
+        self.install_thread.log_signal.connect(self.append_log)
+        self.install_thread.finished_signal.connect(self.on_install_finished)
+        self.install_thread.start()
+
+    def on_install_finished(self, success, msg):
+        """Callback khi cài đặt PyInstaller hoàn tất"""
+        self.progress_bar.hide()
+        self.centralWidget().setEnabled(True)
+        
+        if success:
+            # Kiểm tra lại xem PyInstaller đã cài thành công chưa
+            if check_pyinstaller_installed():
+                QMessageBox.information(self, "Thành công", 
+                    "PyInstaller đã được cài đặt thành công!\n\n"
+                    "Bạn có thể bắt đầu build ngay bây giờ.")
+            else:
+                QMessageBox.warning(self, "Cảnh báo", 
+                    "PyInstaller đã được cài đặt nhưng chưa khả dụng.\n\n"
+                    "Vui lòng khởi động lại ứng dụng và thử lại.")
+        else:
+            QMessageBox.critical(self, "Lỗi", msg)
+
     def build_exe(self):
+        """Kiểm tra PyInstaller và build"""
         py_file = self.py_path_edit.text()
         if not py_file or not os.path.isfile(py_file):
             QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một tệp .py hợp lệ.")
             return
         
+        # Kiểm tra PyInstaller đã cài đặt chưa
+        if not check_pyinstaller_installed():
+            reply = QMessageBox.question(
+                self, 
+                "PyInstaller chưa được cài đặt",
+                "PyInstaller chưa được cài đặt trên hệ thống.\n\n"
+                "Bạn có muốn cài đặt PyInstaller ngay bây giờ không?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.install_pyinstaller()
+            return
+        
+        # Nếu đã có PyInstaller, tiếp tục build
+        self.start_build()
+
+    def start_build(self):
+        """Bắt đầu quá trình build"""
+        py_file = self.py_path_edit.text()
         cmd = self.command_preview.text()
 
         self.progress_bar.show()
         self.centralWidget().setEnabled(False)
         self.menuBar().setEnabled(False)
         self.log_text.clear()
+        self.log_text.append("=== BẮT ĐẦU XÂY DỰNG ===\n")
 
         self.thread = BuildThread(cmd, os.path.dirname(py_file))
         self.thread.log_signal.connect(self.append_log)
@@ -430,18 +518,8 @@ class PyInstallerBuilder(QMainWindow):
         else:
             QMessageBox.critical(self, "Lỗi", msg)
 
-    def download_python(self):
-        webbrowser.open("https://www.python.org/downloads/")
-
-    def install_pyinstaller_button(self):
-        try:
-            subprocess.Popen([sys.executable, "-m", "pip", "install", "--upgrade", "pyinstaller"])
-            QMessageBox.information(self, "Thành công", "Quá trình cài đặt PyInstaller đã bắt đầu trong nền.")
-        except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Không thể bắt đầu cài đặt pyinstaller:\n{e}")
-
 # =============================================================================
-# KHỐI THỰC THI CHÍNH (Đã điều chỉnh QSS)
+# KHỐI THỰC THI CHÍNH
 # =============================================================================
 
 if __name__ == "__main__":
@@ -471,8 +549,8 @@ if __name__ == "__main__":
             text-align: center;
             background-color: rgba(35, 35, 35, 200);
             color: white;
-            min-height: 10px;   /* thấp, mảnh */
-            max-height: 12px;   /* giữ cho nó không cao quá */
+            min-height: 10px;
+            max-height: 12px;
         }
         QProgressBar::chunk {
             background-color: qlineargradient(
@@ -487,4 +565,3 @@ if __name__ == "__main__":
     window = PyInstallerBuilder()
     window.show()
     sys.exit(app.exec())
-
