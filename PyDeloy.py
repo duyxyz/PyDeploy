@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QListWidgetItem, QTabWidget, QScrollArea)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QIcon
+from PyQt5.QtWidgets import QSizePolicy   # ← Thêm dòng này lên trên cùng cùng các import khác
 
 
 class ConvertThread(QThread):
@@ -107,11 +108,11 @@ class PyToExeConverter(QMainWindow):
             return set()
     
     def center_on_screen(self):
-        """Căn giữa cửa sổ trên màn hình (sát trên, căn giữa ngang)"""
+        """Căn giữa cửa sổ trên màn hình"""
         screen_geometry = QApplication.desktop().screenGeometry()
         window_geometry = self.geometry()
         x = (screen_geometry.width() - window_geometry.width()) // 2
-        y = 0  # Sát bên trên màn hình
+        y = (screen_geometry.height() - window_geometry.height()) // 2
         self.move(x, y)
     
     def dragEnterEvent(self, event):
@@ -135,14 +136,11 @@ class PyToExeConverter(QMainWindow):
     
     def init_ui(self):
         self.setWindowTitle('Python to EXE Converter')
-        self.setGeometry(100, 100, 900, 650)
+        self.resize(500, 600)
         
         # Đặt icon cho app
         if os.path.exists('icon.ico'):
             self.setWindowIcon(QIcon('icon.ico'))
-        
-        # Căn giữa màn hình
-        self.center_on_screen()
         
         self.setStyleSheet("""
             QMainWindow {
@@ -169,31 +167,15 @@ class PyToExeConverter(QMainWindow):
         main_layout = QVBoxLayout()
         main_widget.setLayout(main_layout)
         
-        # Header
-        header = QWidget()
-        header.setStyleSheet('background: #1976D2; border-radius: 10px; padding: 15px;')
-        header_layout = QVBoxLayout()
-        
-        title = QLabel('🐍 Python to EXE Converter')
-        title.setFont(QFont('Arial', 18, QFont.Bold))
-        title.setStyleSheet('color: white;')
-        title.setAlignment(Qt.AlignCenter)
-        header_layout.addWidget(title)
-        
-
-        
-        header.setLayout(header_layout)
-        main_layout.addWidget(header)
-        
         # File selection
-        file_group = QGroupBox('📁 File Python')
+        file_group = QGroupBox('File Python')
         file_layout = QHBoxLayout()
         
         self.file_label = QLabel('Chưa chọn file... (Kéo thả file .py vào đây)')
         self.file_label.setStyleSheet('padding: 8px; background: #f5f5f5; border-radius: 5px;')
         file_layout.addWidget(self.file_label, 3)
         
-        browse_btn = QPushButton('📂 Chọn File')
+        browse_btn = QPushButton('Chọn File')
         browse_btn.clicked.connect(self.browse_file)
         browse_btn.setStyleSheet('padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; font-weight: bold;')
         file_layout.addWidget(browse_btn, 1)
@@ -227,26 +209,53 @@ class PyToExeConverter(QMainWindow):
         basic_tab = QWidget()
         basic_layout = QVBoxLayout()
         
-        self.onefile_cb = QCheckBox('✅ One File - Đóng gói thành 1 file duy nhất')
+        # First row: One File and No Console
+        row1_layout = QHBoxLayout()
+        self.onefile_cb = QCheckBox('One File - Đóng gói thành 1 file duy nhất')
         self.onefile_cb.setChecked(True)
-        basic_layout.addWidget(self.onefile_cb)
+        row1_layout.addWidget(self.onefile_cb, 1)
         
-        self.noconsole_cb = QCheckBox('🖥️ No Console - Ẩn cửa sổ console (GUI app)')
-        basic_layout.addWidget(self.noconsole_cb)
+        self.noconsole_cb = QCheckBox('No Console - Ẩn cửa sổ console (GUI app)')
+        row1_layout.addWidget(self.noconsole_cb, 1)
+        basic_layout.addLayout(row1_layout)
         
-        self.clean_build_cb = QCheckBox('🧹 Clean Build - Xóa build cũ')
+        # Second row: Clean Build and GUI Framework
+        row2_layout = QHBoxLayout()
+        self.clean_build_cb = QCheckBox('Clean Build - Xóa build cũ')
         self.clean_build_cb.setChecked(True)
-        basic_layout.addWidget(self.clean_build_cb)
+        row2_layout.addWidget(self.clean_build_cb, 1)
+        
+        # ←←← THAY TOÀN BỘ ĐOẠN CŨ BẰNG ĐOẠN NÀY ←←←
+        gui_frame = QHBoxLayout()
+        gui_frame.setSpacing(8)                    # Khoảng cách đẹp giữa chữ và combo
+        gui_frame.setContentsMargins(0,0,0,0)
+
+        gui_frame.addWidget(QLabel('GUI Framework:'))
+
+        self.gui_combo = QComboBox()
+        self.gui_combo.addItems(['Không có', 'Tkinter', 'CustomTkinter',
+                                 'PyQt5', 'PyQt6', 'PySide2', 'PySide6',
+                                 'Kivy', 'Pygame'])
+        self.gui_combo.setFixedHeight(34)          # Chiều cao vừa tay
+        self.gui_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # ← Dòng trên cực kỳ quan trọng: cho phép combo co giãn theo chiều ngang
+
+        gui_frame.addWidget(self.gui_combo, stretch=1)   # stretch=1 = chiếm hết chỗ trống
+        # Không cần addStretch() nữa vì đã có stretch=1 rồi
+
+        row2_layout.addLayout(gui_frame, 1)
+        basic_layout.addLayout(row2_layout)
+        # ←←← XONG! ←←←
         
         name_layout = QHBoxLayout()
-        name_layout.addWidget(QLabel('📝 Tên output:'))
+        name_layout.addWidget(QLabel('Tên output:'))
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText('my_app')
         name_layout.addWidget(self.name_input)
         basic_layout.addLayout(name_layout)
         
         icon_layout = QHBoxLayout()
-        icon_layout.addWidget(QLabel('🎨 Icon:'))
+        icon_layout.addWidget(QLabel('Icon:'))
         self.icon_input = QLineEdit()
         self.icon_input.setPlaceholderText('Chọn icon .ico (tùy chọn)')
         icon_layout.addWidget(self.icon_input)
@@ -256,29 +265,37 @@ class PyToExeConverter(QMainWindow):
         icon_layout.addWidget(icon_browse_btn)
         basic_layout.addLayout(icon_layout)
         
-        gui_layout = QHBoxLayout()
-        gui_layout.addWidget(QLabel('🎨 GUI Framework:'))
-        self.gui_combo = QComboBox()
-        self.gui_combo.addItems(['Không có', 'Tkinter', 'CustomTkinter', 'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 'Kivy', 'Pygame'])
-        gui_layout.addWidget(self.gui_combo)
-        basic_layout.addLayout(gui_layout)
-        
-        basic_layout.addStretch()
+        # Thay nguyên đoạn header cũ bằng đoạn này (copy-paste là xong)
+        header = QLabel("Python to EXE Converter")
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("""
+            QLabel {
+                font-size: 30px;                    /* Chữ vẫn to 30px như bạn muốn */
+                font-weight: 900;
+                color: #1565C0;
+                background: transparent;
+                padding: 8px 20px;                  /* Padding nhỏ → gọn */
+                margin: 12px 60px 8px 60px;         /* Lề nhỏ hơn, chữ nằm giữa đẹp */
+            }
+        """)
+        header.setFont(QFont("Segoe UI", 30, QFont.Bold))   # Đảm bảo chữ đẹp trên mọi Windows
+        basic_layout.addWidget(header)
+
         basic_tab.setLayout(basic_layout)
-        tabs.addTab(basic_tab, "⚙️ Cơ bản")
+        tabs.addTab(basic_tab, "Cơ bản")
         
         # Tab 2: Nâng cao
         advanced_tab = QWidget()
         advanced_layout = QVBoxLayout()
         
-        advanced_layout.addWidget(QLabel('➕ Hidden Imports:'))
+        advanced_layout.addWidget(QLabel('Hidden Imports:'))
         self.hidden_input = QLineEdit()
         self.hidden_input.setPlaceholderText('numpy, pandas, matplotlib')
         advanced_layout.addWidget(self.hidden_input)
         
         exclude_header = QHBoxLayout()
-        exclude_header.addWidget(QLabel('🚫 Exclude Modules:'))
-        self.analyze_btn = QPushButton('🔍 Tự động')
+        exclude_header.addWidget(QLabel('Exclude Modules:'))
+        self.analyze_btn = QPushButton('Tự động')
         self.analyze_btn.setMaximumWidth(100)
         self.analyze_btn.setStyleSheet('padding: 5px; background: #FF9800; color: white; border-radius: 3px; font-weight: bold;')
         self.analyze_btn.clicked.connect(self.auto_detect_excludes)
@@ -292,14 +309,14 @@ class PyToExeConverter(QMainWindow):
         self.exclude_list.setSelectionMode(QListWidget.MultiSelection)
         
         self.common_excludes = {
-            'unittest': '🧪', 'test': '🧪', 'doctest': '📝', 'pydoc': '📄',
-            'tkinter': '🎨', 'PyQt5': '🎨', 'PyQt6': '🎨', 'PySide2': '🎨', 
-            'PySide6': '🎨', 'matplotlib': '📊', 'scipy': '🔬', 'pandas': '📈',
-            'numpy': '🔢', 'PIL': '🖼️', 'wx': '🎨', 'sqlite3': '💾', 'email': '📧'
+            'unittest': '', 'test': '', 'doctest': '', 'pydoc': '',
+            'tkinter': '', 'PyQt5': '', 'PyQt6': '', 'PySide2': '', 
+            'PySide6': '', 'matplotlib': '', 'scipy': '', 'pandas': '',
+            'numpy': '', 'PIL': '', 'wx': '', 'sqlite3': '', 'email': ''
         }
         
         for module, icon in self.common_excludes.items():
-            item = QListWidgetItem(f"{icon} {module}")
+            item = QListWidgetItem(f"{module}")
             item.setData(Qt.UserRole, module)
             self.exclude_list.addItem(item)
         
@@ -310,7 +327,7 @@ class PyToExeConverter(QMainWindow):
         advanced_layout.addWidget(self.custom_exclude_input)
         
         advanced_tab.setLayout(advanced_layout)
-        tabs.addTab(advanced_tab, "🔧 Nâng cao")
+        tabs.addTab(advanced_tab, "Nâng cao")
         
         main_layout.addWidget(tabs)
         
@@ -323,7 +340,7 @@ class PyToExeConverter(QMainWindow):
         self.exclude_list.itemSelectionChanged.connect(self.update_command)
         
         # Progress
-        progress_group = QGroupBox('📊 Tiến trình')
+        progress_group = QGroupBox('Tiến trình')
         progress_layout = QVBoxLayout()
         
         self.progress_bar = QProgressBar()
@@ -344,7 +361,7 @@ class PyToExeConverter(QMainWindow):
         ''')
         progress_layout.addWidget(self.progress_bar)
         
-        self.progress_label = QLabel('⏳ Chưa bắt đầu')
+        self.progress_label = QLabel('Chưa bắt đầu')
         self.progress_label.setAlignment(Qt.AlignCenter)
         self.progress_label.setStyleSheet('font-weight: bold; color: #666;')
         progress_layout.addWidget(self.progress_label)
@@ -355,7 +372,7 @@ class PyToExeConverter(QMainWindow):
         # Buttons
         btn_layout = QHBoxLayout()
         
-        self.convert_btn = QPushButton('🚀 Chuyển đổi sang EXE')
+        self.convert_btn = QPushButton('Chuyển đổi sang EXE')
         self.convert_btn.clicked.connect(self.convert)
         self.convert_btn.setStyleSheet('''
             QPushButton {
@@ -377,7 +394,7 @@ class PyToExeConverter(QMainWindow):
         ''')
         btn_layout.addWidget(self.convert_btn, 3)
         
-        self.open_folder_btn = QPushButton('📁 Mở thư mục')
+        self.open_folder_btn = QPushButton('Mở thư mục')
         self.open_folder_btn.clicked.connect(self.open_output_folder)
         self.open_folder_btn.setEnabled(False)
         self.open_folder_btn.setStyleSheet('''
@@ -402,7 +419,7 @@ class PyToExeConverter(QMainWindow):
         main_layout.addLayout(btn_layout)
         
         # Command + Log in collapsible section
-        details_group = QGroupBox('💻 Chi tiết')
+        details_group = QGroupBox('Chi tiết')
         details_layout = QVBoxLayout()
         
         details_layout.addWidget(QLabel('Lệnh:'))
@@ -423,7 +440,7 @@ class PyToExeConverter(QMainWindow):
         main_layout.addWidget(details_group)
         
         # Info footer
-        info_label = QLabel('💡 Cài đặt: <code>pip install pyinstaller</code> | 🟢 Xanh = Loại bỏ được | 🔴 Đỏ = Đang dùng | 📥 Kéo thả file .py vào đây')
+        info_label = QLabel('Cài đặt: pip install pyinstaller | Xanh = Loại bỏ được | Đỏ = Đang dùng | Kéo thả file .py vào đây')
         info_label.setWordWrap(True)
         info_label.setStyleSheet('background: #FFF9C4; padding: 8px; border-radius: 5px; font-size: 11px;')
         main_layout.addWidget(info_label)
@@ -498,10 +515,10 @@ class PyToExeConverter(QMainWindow):
                 safe_to_exclude.append(module_name)
         
         if safe_to_exclude:
-            QMessageBox.information(self, '✅ Hoàn tất', 
+            QMessageBox.information(self, 'Hoàn tất', 
                 f'Đã chọn {len(safe_to_exclude)} modules:\n{", ".join(safe_to_exclude[:8])}...')
         else:
-            QMessageBox.information(self, 'ℹ️ Thông báo', 
+            QMessageBox.information(self, 'Thông báo', 
                 'Không tìm thấy module nào an toàn để loại bỏ.')
         
         self.update_command()
@@ -565,16 +582,16 @@ class PyToExeConverter(QMainWindow):
     
     def convert(self):
         if not self.selected_file:
-            QMessageBox.warning(self, '⚠️ Cảnh báo', 'Vui lòng chọn file Python trước!')
+            QMessageBox.warning(self, 'Cảnh báo', 'Vui lòng chọn file Python trước!')
             return
         
         self.progress_bar.setValue(0)
-        self.progress_label.setText('⏳ Đang chuẩn bị...')
+        self.progress_label.setText('Đang chuẩn bị...')
         self.convert_btn.setEnabled(False)
-        self.convert_btn.setText('⏳ Đang chuyển đổi...')
+        self.convert_btn.setText('Đang chuyển đổi...')
         self.open_folder_btn.setEnabled(False)
         self.log_display.clear()
-        self.log_display.append('🚀 Bắt đầu...\n')
+        self.log_display.append('Bắt đầu...\n')
         
         self.convert_thread = ConvertThread(self.generate_command())
         self.convert_thread.output.connect(self.on_output)
@@ -592,12 +609,12 @@ class PyToExeConverter(QMainWindow):
         self.progress_bar.setValue(value)
         
         stages = [
-            (10, '⚙️ Khởi động'),
-            (30, '🔍 Phân tích'),
-            (50, '📦 Thu thập'),
-            (70, '🔨 Build'),
-            (90, '📦 Đóng gói'),
-            (100, '✅ Hoàn thành')
+            (10, 'Khởi động'),
+            (30, 'Phân tích'),
+            (50, 'Thu thập'),
+            (70, 'Build'),
+            (90, 'Đóng gói'),
+            (100, 'Hoàn thành')
         ]
         
         for threshold, label in stages:
@@ -607,24 +624,24 @@ class PyToExeConverter(QMainWindow):
     
     def on_finished(self, success, message):
         self.convert_btn.setEnabled(True)
-        self.convert_btn.setText('🚀 Chuyển đổi sang EXE')
+        self.convert_btn.setText('Chuyển đổi sang EXE')
         
         if success:
             self.progress_bar.setValue(100)
-            self.progress_label.setText('✅ Hoàn thành!')
-            self.log_display.append(f'\n✅ {message}')
-            self.log_display.append(f'📁 Vị trí: {self.output_dir}/{self.name_input.text()}.exe')
+            self.progress_label.setText('Hoàn thành!')
+            self.log_display.append(f'\n{message}')
+            self.log_display.append(f'Vị trí: {self.output_dir}/{self.name_input.text()}.exe')
             self.open_folder_btn.setEnabled(True)
-            QMessageBox.information(self, '🎉 Thành công', 
+            QMessageBox.information(self, 'Thành công', 
                 f'Build thành công!\n\nFile: {self.output_dir}/{self.name_input.text()}.exe')
         else:
             self.progress_bar.setValue(0)
-            self.progress_label.setText('❌ Lỗi')
-            self.log_display.append(f'\n❌ {message}')
+            self.progress_label.setText('Lỗi')
+            self.log_display.append(f'\n{message}')
             
             error_box = QMessageBox(self)
             error_box.setIcon(QMessageBox.Critical)
-            error_box.setWindowTitle('❌ Lỗi')
+            error_box.setWindowTitle('Lỗi')
             error_box.setText('PyInstaller gặp lỗi khi build:')
             error_box.setDetailedText(message)
             error_box.exec_()
@@ -633,8 +650,29 @@ class PyToExeConverter(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
+    
     window = PyToExeConverter()
-    window.show()
+    window.show()                     # Phải show trước mới tính được kích thước chính xác
+
+    # === Căn giữa + dịch lên trên một chút (đẹp nhất) ===
+    screen = QApplication.primaryScreen().geometry()
+    window_width = window.frameGeometry().width()
+    window_height = window.frameGeometry().height()
+    
+    # Tính vị trí chính giữa
+    center_x = (screen.width() - window_width) // 2
+    center_y = (screen.height() - window_height) // 2
+    
+    # Dịch lên trên ~90px (có thể chỉnh số này tùy thích)
+    offset_y = -30                      # Âm = dịch lên trên,
+    final_y = center_y + offset_y
+    
+    # Đảm bảo không bị dính mép trên màn hình
+    final_y = max(final_y, 20)          # Giữ khoảng cách ít nhất 20px với mép trên
+    
+    window.move(center_x, final_y)
+    # ==============================================
+
     sys.exit(app.exec_())
 
 
