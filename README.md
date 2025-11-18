@@ -8,7 +8,9 @@
 
 Một click chuyển Python thành file EXE – cực nhanh, cực đẹp, hoàn toàn tiếng Việt!
 
-![App Screenshot](screenshot.png)
+
+<img width="579" height="855" alt="{8773AEE3-75E6-4918-9063-A3187CD28600}" src="https://github.com/user-attachments/assets/fba3f364-63ee-4236-9961-53adf2b8a290" />
+
 
 ### Features • Tính năng
 - One File / Windowed mode (No Console)  
