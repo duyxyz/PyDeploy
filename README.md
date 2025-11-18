@@ -25,6 +25,8 @@ Một click chuyển Python thành file EXE – cực nhanh, cực đẹp, hoàn
 - Clean, modern, resizable interface  
 
 ### Requirements • Yêu cầu
-- Python 3.6+
-- PyInstaller → `pip install pyinstaller`
+- Python
+```
+pip install pyinstaller
+```
 
