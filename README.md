@@ -1,5 +1,7 @@
-[![Download PyDeploy](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)
-[![Download PyDeploy](https://img.shields.io/sourceforge/dt/pydeploy-app.svg)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)
+[![Download PyDeploy](https://a.fsdn.com/con/app/sf-download-button)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)  <img width="48" height="48" alt="python_18894" src="https://github.com/user-attachments/assets/f0cc400f-36ac-48b0-b33f-3a8ad3c5abab" /> 
+<img width="48" height="48" alt="EXE_29677" src="https://github.com/user-attachments/assets/89274467-bc55-4493-af67-1748ceadef3d" /> [![Download PyDeploy](https://img.shields.io/sourceforge/dt/pydeploy-app.svg)](https://sourceforge.net/projects/pydeploy-app/files/latest/download)
+
+
 
 
 # Python to EXE Converter
