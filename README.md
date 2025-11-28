@@ -10,7 +10,7 @@
 
 Một click chuyển Python thành file EXE – cực nhanh, cực đẹp, hoàn toàn tiếng Việt!
 
-<img width="441" height="731" alt="image" src="https://github.com/user-attachments/assets/681b9b00-0e8a-4b74-aa21-8db533ff4ffd" />
+<img width="308" height="469" alt="{E44C7E7C-DED1-4B09-BD38-0A485D2FB413}" src="https://github.com/user-attachments/assets/69ba5ad0-f359-4ab8-b364-56c606bf2df5" />
 
 
 
