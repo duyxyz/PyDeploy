@@ -123,10 +123,13 @@ class PyToExeConverter(QMainWindow):
                 self.load_python_file(file_path)
     
     def init_ui(self):
-        self.setWindowTitle('Python to EXE Converter - Install: pip install pyinstaller')
-        self.setMinimumWidth(650)
-        self.setMaximumWidth(800)
-        self.resize(700, 750)
+        self.setWindowTitle('PyDeloy  ( pip install pyinstaller )')
+        self.setMinimumWidth(520)
+        self.setMaximumWidth(400)
+        self.resize(350, 350)
+        
+        # Set window to stay on top
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         
         if os.path.exists('icon.ico'):
             self.setWindowIcon(QIcon('icon.ico'))
@@ -138,8 +141,6 @@ class PyToExeConverter(QMainWindow):
         main_layout.setSpacing(10)
         main_layout.setContentsMargins(15, 15, 15, 15)
         main_widget.setLayout(main_layout)
-        
-
         
         # File selection group
         file_group = QGroupBox('Python File')
@@ -168,7 +169,7 @@ class PyToExeConverter(QMainWindow):
         main_layout.addWidget(file_group)
         
         # Tabs for options
-        tabs = QTabWidget()
+        self.tabs = QTabWidget()
         
         # Tab 1: Basic
         basic_tab = QWidget()
@@ -232,7 +233,7 @@ class PyToExeConverter(QMainWindow):
         
         basic_layout.addStretch()
         basic_tab.setLayout(basic_layout)
-        tabs.addTab(basic_tab, "Basic")
+        self.tabs.addTab(basic_tab, "Basic")
         
         # Tab 2: Advanced
         advanced_tab = QWidget()
@@ -279,9 +280,51 @@ class PyToExeConverter(QMainWindow):
         
         advanced_layout.addStretch()
         advanced_tab.setLayout(advanced_layout)
-        tabs.addTab(advanced_tab, "Advanced")
+        self.tabs.addTab(advanced_tab, "Advanced")
         
-        main_layout.addWidget(tabs)
+        # Tab 3: Command
+        command_tab = QWidget()
+        command_layout = QVBoxLayout()
+        command_layout.setSpacing(10)
+        command_layout.setContentsMargins(10, 10, 10, 10)
+        
+        command_layout.addWidget(QLabel('PyInstaller Command:'))
+        
+        self.command_display = QTextEdit()
+        self.command_display.setReadOnly(True)
+        cmd_font = QFont("Courier New", 9)
+        self.command_display.setFont(cmd_font)
+        command_layout.addWidget(self.command_display)
+        
+        copy_cmd_btn = QPushButton('Copy Command')
+        copy_cmd_btn.clicked.connect(self.copy_command_text)
+        command_layout.addWidget(copy_cmd_btn)
+        
+        command_tab.setLayout(command_layout)
+        self.tabs.addTab(command_tab, "Command")
+        
+        # Tab 4: Log
+        log_tab = QWidget()
+        log_layout = QVBoxLayout()
+        log_layout.setSpacing(10)
+        log_layout.setContentsMargins(10, 10, 10, 10)
+        
+        log_layout.addWidget(QLabel('Output Log:'))
+        
+        self.log_display = QTextEdit()
+        self.log_display.setReadOnly(True)
+        log_font = QFont("Courier New", 9)
+        self.log_display.setFont(log_font)
+        log_layout.addWidget(self.log_display)
+        
+        clear_log_btn = QPushButton('Clear Log')
+        clear_log_btn.clicked.connect(self.log_display.clear)
+        log_layout.addWidget(clear_log_btn)
+        
+        log_tab.setLayout(log_layout)
+        self.tabs.addTab(log_tab, "Log")
+        
+        main_layout.addWidget(self.tabs)
         
         # Connect signals
         for widget in [self.onefile_cb, self.noconsole_cb, self.clean_build_cb]:
@@ -296,18 +339,24 @@ class PyToExeConverter(QMainWindow):
         progress_layout = QVBoxLayout()
         progress_layout.setSpacing(6)
         
+        # Progress label and percentage on same line
+        progress_header = QHBoxLayout()
         self.progress_label = QLabel('Ready to convert')
-        progress_layout.addWidget(self.progress_label)
+        progress_header.addWidget(self.progress_label)
+        self.progress_percent = QLabel('0%')
+        self.progress_percent.setAlignment(Qt.AlignRight)
+        progress_header.addWidget(self.progress_percent)
+        progress_layout.addLayout(progress_header)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setTextVisible(False)
         progress_layout.addWidget(self.progress_bar)
         
         progress_group.setLayout(progress_layout)
         main_layout.addWidget(progress_group)
         
-        # Action buttons
+        # Action buttons at the bottom
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
         
@@ -316,43 +365,23 @@ class PyToExeConverter(QMainWindow):
         self.convert_btn.setMinimumHeight(32)
         btn_layout.addWidget(self.convert_btn, 2)
         
-        self.open_folder_btn = QPushButton('Open folder')
+        self.open_folder_btn = QPushButton('Open Folder')
         self.open_folder_btn.clicked.connect(self.open_output_folder)
         self.open_folder_btn.setEnabled(False)
         self.open_folder_btn.setMinimumHeight(32)
         btn_layout.addWidget(self.open_folder_btn, 1)
         
         main_layout.addLayout(btn_layout)
-        
-        # Command display group
-        cmd_group = QGroupBox('Command')
-        cmd_layout = QVBoxLayout()
-        
-        self.cmd_display = QTextEdit()
-        self.cmd_display.setMaximumHeight(70)
-        self.cmd_display.setReadOnly(True)
-        cmd_font = QFont("Courier New", 9)
-        self.cmd_display.setFont(cmd_font)
-        cmd_layout.addWidget(self.cmd_display)
-        
-        cmd_group.setLayout(cmd_layout)
-        main_layout.addWidget(cmd_group)
-        
-        # Log display group
-        log_group = QGroupBox('Output log')
-        log_layout = QVBoxLayout()
-        
-        self.log_display = QTextEdit()
-        self.log_display.setReadOnly(True)
-        self.log_display.setMaximumHeight(100)
-        log_font = QFont("Courier New", 9)
-        self.log_display.setFont(log_font)
-        log_layout.addWidget(self.log_display)
-        
-        log_group.setLayout(log_layout)
-        main_layout.addWidget(log_group)
-        
-
+    
+    def copy_command_text(self):
+        """Copy command to clipboard"""
+        cmd_text = self.command_display.toPlainText()
+        if cmd_text:
+            clipboard = QApplication.clipboard()
+            clipboard.setText(cmd_text)
+            QMessageBox.information(self, 'Copied', 'Command copied to clipboard!')
+        else:
+            QMessageBox.warning(self, 'Warning', 'No command to copy. Please select a Python file first!')
     
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Python file', '', 'Python Files (*.py)')
@@ -367,7 +396,7 @@ class PyToExeConverter(QMainWindow):
         if len(filename) > 50:
             filename = filename[:25] + '...' + filename[-22:]
         
-        self.file_label.setText(f' {filename}')
+        self.file_label.setText(filename)
         self.file_label.setToolTip(file_path)
         
         # Update label font to bold when file selected
@@ -499,12 +528,17 @@ class PyToExeConverter(QMainWindow):
         return cmd
     
     def update_command(self):
-        self.cmd_display.setPlainText(self.generate_command())
+        """Update command display in the Command tab"""
+        cmd_text = self.generate_command()
+        self.command_display.setPlainText(cmd_text)
     
     def convert(self):
         if not self.selected_file:
             QMessageBox.warning(self, 'Warning', 'Please select a Python file first!')
             return
+        
+        # Switch to Log tab when conversion starts
+        self.tabs.setCurrentIndex(3)
         
         self.progress_bar.setValue(0)
         self.progress_label.setText('Starting conversion...')
@@ -528,6 +562,7 @@ class PyToExeConverter(QMainWindow):
     
     def on_progress(self, value):
         self.progress_bar.setValue(value)
+        self.progress_percent.setText(f'{value}%')
         
         stages = [
             (10, 'Initializing'),
@@ -540,7 +575,7 @@ class PyToExeConverter(QMainWindow):
         
         for threshold, label in stages:
             if value <= threshold:
-                self.progress_label.setText(f'{label}... {value}%')
+                self.progress_label.setText(label)
                 break
     
     def on_finished(self, success, message):
@@ -573,7 +608,7 @@ def main():
     app = QApplication(sys.argv)
     
     # Use native Windows style
-    app.setStyle('windowsvista')  # This gives true Windows native look
+    app.setStyle('windowsvista')
     
     # Set application font
     font = QFont("Segoe UI", 9)
